@@ -1,0 +1,20 @@
+extends ../layout
+
+block content
+    h1= title
+
+    if can_create_client
+        h2 Новый клиент
+        form(method='post', action='/clients/create')
+            label(for='clientLabel') Название
+            input#clientLabel(type='text', name='label')
+            button(type='submit') Добавить
+
+    table
+        tr
+            th id
+            th Клиент
+        each item in clients
+            tr
+                td= item.id
+                td= item.label

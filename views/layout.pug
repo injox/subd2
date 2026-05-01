@@ -1,0 +1,42 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+
+    script(src='/javascripts/jquery.min.js')
+    script(src='/javascripts/layout.js')
+  body
+    nav.top-nav
+      ul
+        if user
+          li
+            a(href='/') Главная
+          li
+            a(href='/clients') Клиенты
+          li
+            a(href='/orders') Заказы
+          if user.id_role == 1
+            li
+              a(href='/users') Пользователи
+          li
+            a(href='', id='Logout') Выйти
+        else
+          li
+            a(href='', id='Login') Войти
+    block content
+
+    div#login_popup.q-window
+      div.q-window-block(style="width:400px;height:220px;margin:-150px 0 0 -400px")
+        div.q-window-header Вход
+          a#login_popup_close(style="position: relative;left: 300px;") X
+        div.q-window-body.q-form
+          div.q-window-filters-form
+            div.q-form-data
+              label(for="inpLogin") Логин
+              input#inpLogin(type="text")
+            div.q-form-data
+              label(for="inpPassword") Пароль
+              input#inpPassword(type="password")
+        div.q-buttons
+          a#submit_login Войти

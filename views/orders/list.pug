@@ -1,0 +1,58 @@
+extends ../layout
+
+block content
+    h1= title
+
+    if can_create_order
+        h2 Новый заказ
+        form(method='post', action='/orders/create')
+            label(for='orderLabel') Название
+            input#orderLabel(type='text', name='label')
+            label(for='orderClient') Клиент
+            select#orderClient(name='id_client')
+                option(value='') -
+                each c in clients
+                    option(value=c.id)= c.label
+            label(for='orderAmount') Сумма
+            input#orderAmount(type='number', step='0.01', name='amount')
+            button(type='submit') Создать
+
+    table
+        tr
+            th id
+            th Название
+            th Клиент
+            th Статус
+            th Сумма
+            th Оплачено
+            th Элементы
+            if can_manage_orders
+                th Сменить статус
+                th Оплата
+        each o in orders
+            tr
+                td= o.id
+                td= o.label
+                td= o.client_label
+                td= o.status_label
+                td= o.amount
+                td= o.paid_amount
+                td
+                    a(href='/orders/' + o.id + '/items') Элементы
+                if can_manage_orders
+                    td
+                        form(method='post', action='/orders/' + o.id + '/status')
+                            select(name='id_status')
+                                each s in statuses
+                                    if s.id == o.id_status
+                                        option(value=s.id, selected)= s.label
+                                    else
+                                        option(value=s.id)= s.label
+                            button(type='submit') Применить
+                    td
+                        form(method='post', action='/orders/' + o.id + '/payments')
+                            select(name='id_payment_type')
+                                each p in paymentTypes
+                                    option(value=p.id)= p.label
+                            input(type='number', step='0.01', name='amount', placeholder='Сумма')
+                            button(type='submit') Оплатить

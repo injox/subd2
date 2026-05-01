@@ -1,0 +1,14 @@
+extends ../layout
+
+block content
+    h1= title
+    table
+        tr
+            th id
+            th Логин
+            th ФИО
+        each item in users
+            tr
+                td= item.id
+                td= item.login
+                td= item.fio

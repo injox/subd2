@@ -1,0 +1,29 @@
+extends ../layout
+
+block content
+    h1= title
+
+    if order
+        p Заказ: #{order.label}
+        p Клиент: #{order.client_label}
+        p Статус: #{order.status_label}
+
+    if can_add_items
+        h2 Новый элемент
+        form(method='post', action='/orders/' + order.id + '/items')
+            label(for='itemLabel') Наименование
+            input#itemLabel(type='text', name='label')
+            label(for='itemAmount') Сумма
+            input#itemAmount(type='number', step='0.01', name='amount')
+            button(type='submit') Добавить
+
+    table
+        tr
+            th id
+            th Наименование
+            th Сумма
+        each item in items
+            tr
+                td= item.id
+                td= item.label
+                td= item.amount
