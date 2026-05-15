@@ -1,0 +1,34 @@
+extends ../layout
+
+block content
+    h1= title
+
+    h2 Статистика покупок
+    if redisStats.length
+        table
+            tr
+                th id
+                th Товар
+                th Покупок
+            each row in redisStats
+                tr
+                    td= row.id
+                    td= row.label
+                    td= row.purchases
+    else
+        p Нет данных.
+
+    h2 Лог статусов заказов
+    if clickhouseStats.length
+        table
+            tr
+                th Заказ
+                th Статус
+                th Время
+            each row in clickhouseStats
+                tr
+                    td= row.order_id
+                    td= row.status_label
+                    td= row.ts_changed
+    else
+        p Нет данных.

@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+const { getClickhouse, getRedis } = require('../datastores');
 
 const ROLE_ADMIN = 1;
 const ROLE_MANAGER = 2;
@@ -82,7 +83,49 @@ router.post('/:id/status', async function(req, res, next) {
         return;
     }
 
-    await req.db.none('UPDATE orders SET id_status = $1 WHERE id = $2', [statusId, orderId]);
+    let current = await req.db.oneOrNone('SELECT id_status FROM orders WHERE id = $1', orderId);
+    if (!current) {
+        res.redirect('/orders');
+        return;
+    }
+
+    if (current.id_status !== statusId) {
+        await req.db.none('UPDATE orders SET id_status = $1 WHERE id = $2', [statusId, orderId]);
+
+        try {
+            let clickhouse = getClickhouse();
+            await clickhouse.insert({
+                table: 'orders_log',
+                values: [
+                    {
+                        id: Date.now(),
+                        order_id: orderId,
+                        status_id: statusId,
+                        ts_changed: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                    }
+                ],
+                format: 'JSONEachRow'
+            });
+        } catch (err) {
+            console.error('ClickHouse log error:', err);
+        }
+
+        if (statusId === 30) {
+            try {
+                let redis = await getRedis();
+                let items = await req.db.any(
+                    'SELECT product_id FROM order_items WHERE id_order = $1 AND product_id IS NOT NULL',
+                    orderId
+                );
+                for (let item of items) {
+                    let key = 'product:' + item.product_id + ':purchases';
+                    await redis.incr(key);
+                }
+            } catch (err) {
+                console.error('Redis stats error:', err);
+            }
+        }
+    }
     res.redirect('/orders');
 });
 
@@ -134,11 +177,19 @@ router.get('/:id/items', async function(req, res, next) {
         return;
     }
 
-    let items = await req.db.any('SELECT * FROM order_items WHERE id_order = $1 ORDER BY id', orderId);
+    let items = await req.db.any(
+        'SELECT oi.*, p.label AS product_label ' +
+        'FROM order_items oi ' +
+        'LEFT JOIN products p ON p.id = oi.product_id ' +
+        'WHERE oi.id_order = $1 ORDER BY oi.id',
+        orderId
+    );
+    let products = await req.db.any('SELECT * FROM products ORDER BY id');
     res.render('orders/items', {
         title: 'Элементы заказа',
         order: order,
         items: items,
+        products: products,
         can_add_items: canCreateOrder(req.user)
     });
 });
@@ -152,6 +203,7 @@ router.post('/:id/items', async function(req, res, next) {
     let orderId = parseInt(req.params.id, 10);
     let label = (req.body.label || '').trim();
     let amount = req.body.amount ? parseFloat(req.body.amount) : null;
+    let productId = parseInt(req.body.product_id, 10);
 
     if (isNaN(orderId) || !label) {
         res.redirect('/orders');
@@ -159,8 +211,8 @@ router.post('/:id/items', async function(req, res, next) {
     }
 
     await req.db.none(
-        'INSERT INTO order_items(label, id_order, amount) VALUES($1, $2, $3)',
-        [label, orderId, amount]
+        'INSERT INTO order_items(label, product_id, id_order, amount) VALUES($1, $2, $3, $4)',
+        [label, isNaN(productId) ? null : productId, orderId, amount]
     );
     res.redirect('/orders/' + orderId + '/items');
 });

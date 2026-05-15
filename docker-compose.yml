@@ -8,9 +8,21 @@ services:
     environment:
       - DATABASE_URL=postgres://myuser:mypassword@db:5432/mydatabase
       - DEBUG=myapp:*
+      - MONGO_URL=mongodb://mongo:27017
+      - MONGO_DB=mydatabase
+      - REDIS_URL=redis://redis:6379
+      - CLICKHOUSE_HOST=http://clickhouse:8123
+      - CLICKHOUSE_USER=app
+      - CLICKHOUSE_PASSWORD=app_password
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_started
+      clickhouse:
+        condition: service_started
+      redis:
+        condition: service_started
   db:
     image: postgres:16-alpine
     container_name: postres_db
@@ -23,11 +35,43 @@ services:
       - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
+  mongo:
+    image: mongo:7
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: app
+      CLICKHOUSE_PASSWORD: app_password
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse_init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 volumes:
   postgres_data:
+  mongo_data:
+  clickhouse_data:
+  redis_data:

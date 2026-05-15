@@ -11,6 +11,8 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var clientsRouter = require('./routes/clients');
 var ordersRouter = require('./routes/orders');
+var productsRouter = require('./routes/products');
+var statsRouter = require('./routes/stats');
 
 var app = express();
 
@@ -41,6 +43,8 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/clients', clientsRouter);
 app.use('/orders', ordersRouter);
+app.use('/products', productsRouter);
+app.use('/stats', statsRouter);
 let api = require('./routes/api');
 app.use('/api', api);
 let api_auth = require('./routes/api/auth');

@@ -1,0 +1,50 @@
+extends ../layout
+
+block content
+    h1= title
+
+    h2 Новый товар
+    form(method='post', action='/products/create')
+        label(for='productLabel') Название
+        input#productLabel(type='text', name='label')
+        label(for='productPrice') Цена
+        input#productPrice(type='number', step='0.01', name='price')
+        button(type='submit') Добавить
+
+    h2 Список товаров
+    table
+        tr
+            th id
+            th Название
+            th Цена
+            th Детали
+        each item in products
+            tr
+                td= item.id
+                td= item.label
+                td= item.price
+                td
+                    a(href='/products?id=' + item.id) Редактировать
+
+    if selectedProduct
+        h2 Детали товара
+        p Товар: #{selectedProduct.label}
+        form(method='post', action='/products/' + selectedProduct.id + '/details')
+            table
+                tr
+                    th Поле
+                    th Значение
+                if detailsEntries.length
+                    each row in detailsEntries
+                        tr
+                            td
+                                input(type='text', name='detail_key', value=row.key)
+                            td
+                                input(type='text', name='detail_value', value=row.value)
+                - for (var i = 0; i < 3; i++)
+                    tr
+                        td
+                            input(type='text', name='detail_key')
+                        td
+                            input(type='text', name='detail_value')
+            button(type='submit') Сохранить
